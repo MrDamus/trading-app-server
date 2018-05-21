@@ -13,12 +13,26 @@ router.get('/', function(req, res, next) {
     db.collection('users')
       .find()
       .toArray(function(err, results) {
-        console.log(results)
+        console.log(results);
         res.send(results);
       })
     console.log('err', err);
   })
+});
+
+/* GET users listing. */
+router.put('/users', (req, res) => {
+  // Handle put request
+  }
 })
 
-module.exports = router;
+// app.post('/quotes', (req, res) => {
+//   db.collection('users').save(req.body, result) => {
+//     if (err) return console.log(err)
+    
+//     console.log('saved to database')
+//     res.redirect('/')
+//   })
+// })
 
+module.exports = router;
