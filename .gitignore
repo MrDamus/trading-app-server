@@ -56,6 +56,8 @@ build/Release
 node_modules/
 jspm_packages/
 
+env.txt
+
 # Typescript v1 declaration files
 typings/
 

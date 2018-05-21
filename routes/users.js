@@ -2,12 +2,11 @@ var express = require('express');
 var router = express.Router();
 const MongoClient = require('mongodb').MongoClient
 
-const url = 'mongodb://admin:kitkat@ds129770.mlab.com:29770/stock-trading'
+const url = `mongodb://${process.env.DB_USER}:${process.env.DB_PASSWORD}@ds129770.mlab.com:29770/stock-trading`
 
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
-  
   MongoClient.connect(url, (err, client) => {
     db = client.db('stock-trading')
     db.collection('users')
@@ -21,18 +20,21 @@ router.get('/', function(req, res, next) {
 });
 
 /* GET users listing. */
-router.put('/users', (req, res) => {
+router.put('/', (req, res) => {
   // Handle put request
-  }
+  })
+
+router.post('/', (req, res) => {
+  MongoClient.connect(url, (err, client) => {
+    db = client.db('stock-trading')
+    const newUser = {...req.body, wallet: [], money: 1000}
+   db.collection('users').save(newUser, (err, result) => {
+    if (err) return console.log(err)
+
+    console.log('saved to database')
+    res.redirect('/')
+  })
+  })
 })
-
-// app.post('/quotes', (req, res) => {
-//   db.collection('users').save(req.body, result) => {
-//     if (err) return console.log(err)
-    
-//     console.log('saved to database')
-//     res.redirect('/')
-//   })
-// })
-
+ 
 module.exports = router;
