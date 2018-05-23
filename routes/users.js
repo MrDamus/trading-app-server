@@ -19,6 +19,8 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/:email', function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
   MongoClient.connect(url, (err, client) => {
     console.log(req.params.email)
     db = client.db('stock-trading')
