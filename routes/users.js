@@ -19,10 +19,10 @@ router.get('/', function (req, res, next) {
   })
 });
 
+/* LOGIN */
 router.post('/:email', function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   MongoClient.connect(url, (err, client) => {
-    console.log(req.params.email)
     db = client.db('stock-trading')
     db.collection('users')
       .findOne({ email: req.params.email, password: req.body.password })
@@ -30,11 +30,52 @@ router.post('/:email', function (req, res, next) {
         res.send(user)
       })
   })
-});
+}); 
 
-router.put('/:email', function (req, res, next) {
+
+
+/* TRANSACTION::BUY
+  body: {
+    "symbol": string,
+    "amount": number,
+    "price": number,
+    "date": number
+  }
+*/
+router.put('/buy/:email', function (req, res, next) {
+  const { amount, price } = req.body;
+  const cost = price * amount;
   MongoClient.connect(url, (err, client) => {
-    console.log(req.body.money, req.body.wallet)
+    db = client.db('stock-trading')
+
+    db.collection('users')
+      .findOne({ email: req.params.email})
+      .then(user => {
+        if(user.money > cost) {
+          db.collection('users')
+          .findOneAndUpdate({ email: req.params.email },
+          {
+            $inc: {
+              money: -(amount*price),
+            },
+            $push: {
+              wallet: req.body
+            }
+          },{}, (err, result) => {
+            console.warn(result)
+            if (err) return res.send(err)
+            res.send("Transaction Successful")
+          })
+        } else {
+          res.status(500).send("Not enough money")
+        }
+      })
+  });
+})
+
+/* TRANSACTION::SELL */
+router.put('/sell/:email', function (req, res, next) {
+  MongoClient.connect(url, (err, client) => {
     db = client.db('stock-trading')
     db.collection('users')
       .findOneAndUpdate({ email: req.params.email },
@@ -53,11 +94,12 @@ router.put('/:email', function (req, res, next) {
   });
 })
 
+/* CREATE NEW USER */
 router.post('/', (req, res) => {
   MongoClient.connect(url, (err, client) => {
     db = client.db('stock-trading')
     const newUser = { ...req.body, wallet: [], money: 1000 }
-
+    wallet: [ [Object], [Object] ],
     db.collection('users')
       .find({ email: newUser.email })
       .toArray(function (err, users) {
@@ -76,10 +118,7 @@ router.post('/', (req, res) => {
   })
 })
 
-
-
 // Clearing database
-
 router.delete('/', (req, res) => {
   MongoClient.connect(url, (err, client) => {
     db = client.db('stock-trading')
