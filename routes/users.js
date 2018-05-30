@@ -81,9 +81,9 @@ router.put('/sell/:email', function (req, res, next) {
       .findOneAndUpdate({ email: req.params.email },
       {
         $inc: {
-          money: -req.body.money,
+          money: +req.body.money,
         },
-        $push: {
+        $pull: { // delete specific object from array 
           wallet: req.body.wallet
         }
       },{}, (err, result) => {
