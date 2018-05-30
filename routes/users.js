@@ -47,7 +47,6 @@ router.put('/buy/:email', function (req, res, next) {
   const cost = price * amount;
   MongoClient.connect(url, (err, client) => {
     db = client.db('stock-trading')
-
     db.collection('users')
       .findOne({ email: req.params.email})
       .then(user => {
@@ -73,11 +72,19 @@ router.put('/buy/:email', function (req, res, next) {
   });
 })
 
-/* TRANSACTION::SELL */
+/* TRANSACTION::SELL 
+body: {
+  date: number
+}
+
+*/
 router.put('/sell/:email', function (req, res, next) {
   MongoClient.connect(url, (err, client) => {
     db = client.db('stock-trading')
     db.collection('users')
+    const {date, transaction} = req.body;
+
+
       .findOneAndUpdate({ email: req.params.email },
       {
         $inc: {
