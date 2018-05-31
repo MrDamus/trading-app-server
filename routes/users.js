@@ -79,19 +79,17 @@ body: {
 
 */
 router.put('/sell/:email', function (req, res, next) {
+  const {date} = req.body;
   MongoClient.connect(url, (err, client) => {
     db = client.db('stock-trading')
     db.collection('users')
-    const {date, transaction} = req.body;
-
-
       .findOneAndUpdate({ email: req.params.email },
       {
         $inc: {
           money: +req.body.money,
         },
         $pull: { // delete specific object from array 
-          wallet: req.body.wallet
+          wallet: req.body.date
         }
       },{}, (err, result) => {
         console.warn(result)
