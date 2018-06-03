@@ -8,7 +8,7 @@ const url = `mongodb://${process.env.DB_USER}:${process.env.DB_PASSWORD}@ds12977
 /* GET users listing. */
 router.get('/', function (req, res, next) {
   MongoClient.connect(url, (err, client) => {
-    db = client.db('stock-trading')
+    const db = client.db('stock-trading')
     db.collection('users')
       .find()
       .toArray(function (err, results) {
@@ -23,7 +23,7 @@ router.get('/', function (req, res, next) {
 router.post('/:email', function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   MongoClient.connect(url, (err, client) => {
-    db = client.db('stock-trading')
+    const db = client.db('stock-trading')
     db.collection('users')
       .findOne({ email: req.params.email, password: req.body.password })
       .then(user => {
@@ -46,7 +46,7 @@ router.put('/buy/:email', function (req, res, next) {
   const { amount, price } = req.body;
   const cost = price * amount;
   MongoClient.connect(url, (err, client) => {
-    db = client.db('stock-trading')
+    const db = client.db('stock-trading')
     db.collection('users')
       .findOne({ email: req.params.email})
       .then(user => {
@@ -81,28 +81,56 @@ body: {
 router.put('/sell/:email', function (req, res, next) {
   const {date} = req.body;
   MongoClient.connect(url, (err, client) => {
-    db = client.db('stock-trading')
+    const db = client.db('stock-trading')
     db.collection('users')
-      .findOneAndUpdate({ email: req.params.email },
-      {
-        $inc: {
-          money: +req.body.money,
-        },
-        $pull: { // delete specific object from array 
-          wallet: req.body.date
-        }
-      },{}, (err, result) => {
-        console.warn(result)
-        if (err) return res.send(err)
-        res.send(result)
-      })
-  });
+    .find({
+          email: req.params.email,
+          wallet: { $elemMatch: {date}}
+        }).snapshot().forEach(
+      user => {
+        // update document, using its own properties
+        user.wallet = user.wallet.map(transaction => {
+          if(transaction.date == date) {
+            user.money += transaction.amount * transaction.price
+            transaction.sold = true;
+            transaction.amount = 0;
+            return transaction
+          }
+          return transaction
+        })
+        db.collection('users').save(user);
+        res.send("Transaction Successful")
+      }
+    )
+    // .findOneAndUpdate(
+    //   {
+    //     email: req.params.email,
+    //     wallet: { $elemMatch: {date}}
+    //   },
+    //   {
+    //     // $inc: {
+    //     //   "money": "$wallet.$.amount" * "$wallet.$.price",
+    //     // },
+    //     $set: {
+    //       "money": ,
+    //       "wallet.$.amount" : 0,
+    //       "wallet.$.sold" : true
+    //     } 
+    //   },
+    //   { arrayFilters: [ { "element.wallet": { date } } ] }
+    //   , (err, result) => {
+    //     console.warn(result)
+    //     if (err) return res.send(err)
+    //     res.send("Transaction Successful")
+    //   }
+    //   )
+  })
 })
 
 /* CREATE NEW USER */
 router.post('/', (req, res) => {
   MongoClient.connect(url, (err, client) => {
-    db = client.db('stock-trading')
+    const db = client.db('stock-trading')
     const newUser = { ...req.body, wallet: [], money: 1000 }
     wallet: [ [Object], [Object] ],
     db.collection('users')
@@ -126,7 +154,7 @@ router.post('/', (req, res) => {
 // Clearing database
 router.delete('/', (req, res) => {
   MongoClient.connect(url, (err, client) => {
-    db = client.db('stock-trading')
+    const db = client.db('stock-trading')
     try {
       db.collection('users').drop({ "id": !null });
     } catch (e) {
