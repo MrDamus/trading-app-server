@@ -32,8 +32,6 @@ router.post('/:email', function (req, res, next) {
   })
 }); 
 
-
-
 /* TRANSACTION::BUY
   body: {
     "symbol": string,
@@ -76,7 +74,6 @@ router.put('/buy/:email', function (req, res, next) {
 body: {
   date: number
 }
-
 */
 router.put('/sell/:email', function (req, res, next) {
   const {date} = req.body;
@@ -138,13 +135,14 @@ router.post('/', (req, res) => {
       .toArray(function (err, users) {
           if (users && users.length > 0) {
             // error 
+            res.statusMessage = 'User already exists'
             res.status(500).send({ error: 'User already exists' });
           } else {
             db.collection('users')
               .save(newUser, (err, result) => {
                 if (err) return console.log(err)
                 console.log('Your account has been created.')
-                res.redirect('/')
+                res.send(newUser)
               })
           }
       })
