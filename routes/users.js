@@ -61,7 +61,7 @@ router.put('/buy/:email', function (req, res, next) {
           },{}, (err, result) => {
             console.warn(result)
             if (err) return res.send(err)
-            res.send("Transaction Successful")
+            res.send({response: "Transaction Successful"})
           })
         } else {
           res.status(500).send("Not enough money")
@@ -96,31 +96,9 @@ router.put('/sell/:email', function (req, res, next) {
           return transaction
         })
         db.collection('users').save(user);
-        res.send("Transaction Successful")
+        res.send({response: "Transaction Successful"})
       }
     )
-    // .findOneAndUpdate(
-    //   {
-    //     email: req.params.email,
-    //     wallet: { $elemMatch: {date}}
-    //   },
-    //   {
-    //     // $inc: {
-    //     //   "money": "$wallet.$.amount" * "$wallet.$.price",
-    //     // },
-    //     $set: {
-    //       "money": ,
-    //       "wallet.$.amount" : 0,
-    //       "wallet.$.sold" : true
-    //     } 
-    //   },
-    //   { arrayFilters: [ { "element.wallet": { date } } ] }
-    //   , (err, result) => {
-    //     console.warn(result)
-    //     if (err) return res.send(err)
-    //     res.send("Transaction Successful")
-    //   }
-    //   )
   })
 })
 
