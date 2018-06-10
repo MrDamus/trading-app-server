@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const { check, validationResult } = require('express-validator/check');
 const MongoClient = require('mongodb').MongoClient
+const axios = require('axios');
 
 const url = `mongodb://${process.env.DB_USER}:${process.env.DB_PASSWORD}@ds129770.mlab.com:29770/stock-trading`
 
@@ -75,28 +76,29 @@ body: {
   date: number
 }
 */
-router.put('/sell/:email', function (req, res, next) {
+router.put('/sell/:email', (req, res, next) => {
   const {date} = req.body;
   MongoClient.connect(url, (err, client) => {
     const db = client.db('stock-trading')
     db.collection('users')
     .find({
-          email: req.params.email,
-          wallet: { $elemMatch: {date}}
-        }).snapshot().forEach(
+      email: req.params.email,
+      wallet: { $elemMatch: {date}}
+    }).snapshot().forEach(
       user => {
-        // update document, using its own properties
-        user.wallet = user.wallet.map(transaction => {
-          if(transaction.date == date) {
-            user.money += transaction.amount * transaction.price
-            transaction.sold = true;
-            transaction.amount = 0;
-            return transaction
-          }
-          return transaction
-        })
-        db.collection('users').save(user);
-        res.send({response: "Transaction Successful"})
+        for (let i = 0; i < user.wallet.length; i++) {
+          if(user.wallet[i].date == date) {
+              axios.get(`https://api.iextrading.com/1.0/stock/${user.wallet[i].symbol}/price`)
+                .then(resp => {
+                  user.money += user.wallet[i].amount * resp.data
+                  user.wallet[i].sold = true;
+                  user.wallet[i].amount = 0;
+                  db.collection('users').save(user);
+                  res.send({response: "Transaction Successful"})
+                })
+                .catch(error => console.log(error))
+            }
+        }
       }
     )
   })
