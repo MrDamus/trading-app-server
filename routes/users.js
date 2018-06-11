@@ -73,11 +73,16 @@ router.put('/buy/:email', function (req, res, next) {
 
 /* TRANSACTION::SELL 
 body: {
-  date: number
+  date: number,
+  amount: number
 }
 */
+
+const returnError = (res, text) => res.status(500).send({ error: text });
+
+
 router.put('/sell/:email', (req, res, next) => {
-  const {date} = req.body;
+  const {date, amount} = req.body;
   MongoClient.connect(url, (err, client) => {
     const db = client.db('stock-trading')
     db.collection('users')
@@ -87,17 +92,31 @@ router.put('/sell/:email', (req, res, next) => {
     }).snapshot().forEach(
       user => {
         for (let i = 0; i < user.wallet.length; i++) {
-          if(user.wallet[i].date == date) {
+          const transactionExists = user.wallet[i].date == date
+          if(transactionExists) {
+            const currentAmount = user.wallet[i].amount
+            const canSell = amount <= currentAmount
+            if(canSell) {
               axios.get(`https://api.iextrading.com/1.0/stock/${user.wallet[i].symbol}/price`)
-                .then(resp => {
-                  user.money += user.wallet[i].amount * resp.data
-                  user.wallet[i].sold = true;
-                  user.wallet[i].amount = 0;
-                  db.collection('users').save(user);
-                  res.send({response: "Transaction Successful"})
-                })
-                .catch(error => console.log(error))
+              .then(resp => {
+                user.money += user.wallet[i].amount * resp.data
+                user.wallet[i].amount = currentAmount - amount;
+                user.transactionHistory = [{ // zamiast = .push
+                  ...user.wallet[i],
+                  amount,
+                  date: Date.now(),
+                  sellPrice: resp.data
+                }]
+                db.collection('users').save(user);
+                res.send({response: "Transaction Successful"})
+              })
+              .catch(error => console.log(error))
+            } else {
+              returnError(res, 'stock....')
             }
+          } else {
+            returnError(res, 'Selected Transaction doesnt exist');
+          }
         }
       }
     )
