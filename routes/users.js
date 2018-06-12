@@ -1,8 +1,8 @@
-var express = require('express');
-var router = express.Router();
-const { check, validationResult } = require('express-validator/check');
+var express = require('express')
+var router = express.Router()
+const { check, validationResult } = require('express-validator/check')
 const MongoClient = require('mongodb').MongoClient
-const axios = require('axios');
+const axios = require('axios')
 
 const url = `mongodb://${process.env.DB_USER}:${process.env.DB_PASSWORD}@ds129770.mlab.com:29770/stock-trading`
 
@@ -13,16 +13,16 @@ router.get('/', function (req, res, next) {
     db.collection('users')
       .find()
       .toArray(function (err, results) {
-        console.log(results);
-        res.send(results);
+        console.log(results)
+        res.send(results)
       })
-    console.log('err', err);
+    console.log('err', err)
   })
-});
+})
 
 /* LOGIN */
 router.post('/:email', function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Origin", "*")
   MongoClient.connect(url, (err, client) => {
     const db = client.db('stock-trading')
     db.collection('users')
@@ -31,7 +31,7 @@ router.post('/:email', function (req, res, next) {
         res.send(user)
       })
   })
-}); 
+})
 
 /* TRANSACTION::BUY
   body: {
@@ -42,8 +42,8 @@ router.post('/:email', function (req, res, next) {
   }
 */
 router.put('/buy/:email', function (req, res, next) {
-  const { amount, price } = req.body;
-  const cost = price * amount;
+  const { amount, price } = req.body
+  const cost = price * amount
   MongoClient.connect(url, (err, client) => {
     const db = client.db('stock-trading')
     db.collection('users')
@@ -68,7 +68,7 @@ router.put('/buy/:email', function (req, res, next) {
           res.status(500).send("Not enough money")
         }
       })
-  });
+  })
 })
 
 /* TRANSACTION::SELL 
@@ -80,9 +80,9 @@ body: {
 
 const returnError = (res, text) => res.status(500).send({ error: text });
 
-
 router.put('/sell/:email', (req, res, next) => {
-  const {date, amount} = req.body;
+  const {date, amount} = req.body
+  let transactionCorrect = false;
   MongoClient.connect(url, (err, client) => {
     const db = client.db('stock-trading')
     db.collection('users')
@@ -94,29 +94,32 @@ router.put('/sell/:email', (req, res, next) => {
         for (let i = 0; i < user.wallet.length; i++) {
           const transactionExists = user.wallet[i].date == date
           if(transactionExists) {
+            transactionCorrect = true;
             const currentAmount = user.wallet[i].amount
             const canSell = amount <= currentAmount
             if(canSell) {
               axios.get(`https://api.iextrading.com/1.0/stock/${user.wallet[i].symbol}/price`)
               .then(resp => {
                 user.money += user.wallet[i].amount * resp.data
-                user.wallet[i].amount = currentAmount - amount;
-                user.transactionHistory = [{ // zamiast = .push
+                user.wallet[i].amount = currentAmount - amount
+                user.transactionHistory.push({
                   ...user.wallet[i],
                   amount,
                   date: Date.now(),
                   sellPrice: resp.data
-                }]
-                db.collection('users').save(user);
-                res.send({response: "Transaction Successful"})
+                })
+                db.collection('users').save(user)
+                res.send({response: 'Transaction Successful'})
               })
               .catch(error => console.log(error))
             } else {
               returnError(res, 'stock....')
+              return
             }
-          } else {
-            returnError(res, 'Selected Transaction doesnt exist');
           }
+        }
+        if (!transactionCorrect) {
+          returnError(res, `Selected Transaction doesn't exist`)
         }
       }
     )
@@ -127,15 +130,16 @@ router.put('/sell/:email', (req, res, next) => {
 router.post('/', (req, res) => {
   MongoClient.connect(url, (err, client) => {
     const db = client.db('stock-trading')
-    const newUser = { ...req.body, wallet: [], money: 1000 }
-    wallet: [ [Object], [Object] ],
+    const newUser = { ...req.body, wallet: [], transactionHistory: [], money: 1000 }
+    wallet: [ [Object], [Object] ]
+    transactionHistory: [ [Object], [Object] ]
     db.collection('users')
       .find({ email: newUser.email })
       .toArray(function (err, users) {
           if (users && users.length > 0) {
             // error 
             res.statusMessage = 'User already exists'
-            res.status(500).send({ error: 'User already exists' });
+            res.status(500).send({ error: 'User already exists' })
           } else {
             db.collection('users')
               .save(newUser, (err, result) => {
@@ -153,11 +157,11 @@ router.delete('/', (req, res) => {
   MongoClient.connect(url, (err, client) => {
     const db = client.db('stock-trading')
     try {
-      db.collection('users').drop({ "id": !null });
+      db.collection('users').drop({ "id": !null })
     } catch (e) {
-      console.log(e);
+      console.log(e)
     }
   })
 })
 
-module.exports = router;
+module.exports = router
