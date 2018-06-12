@@ -20,6 +20,8 @@
     "pug": "2.0.0-beta11"
   },
   "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-plugin-react": "^7.9.1",
     "nodemon": "^1.17.4"
   }
 }
